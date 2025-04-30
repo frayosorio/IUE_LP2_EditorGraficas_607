@@ -185,26 +185,41 @@ public class FrmEditor extends JFrame {
     }
 
     private void cargarDibujo() {
-
+        nombreArchivo = Archivo.elegirArchivo();
+        if (!nombreArchivo.equals("")) {
+            dibujo.desdeJSON(nombreArchivo);
+            dibujo.dibujar(pnlGrafica, estado);
+        }
     }
 
     private void guardarDibujo() {
+        nombreArchivo = Archivo.elegirArchivo();
+        if (!nombreArchivo.equals("")) {
+            if (dibujo.guardarJSON(nombreArchivo)) {
+                JOptionPane.showMessageDialog(null, "Dibujo guardado con exito");
+            } else {
+                JOptionPane.showMessageDialog(null, "No se pudo guardar el dibujo");
+            }
+        }
 
     }
 
     private void seleccionarTrazo() {
-
+        estado = Estado.SELECCIONANDO;
     }
 
     private void eliminarTrazo() {
-
+        if (dibujo.getNodoSeleccionado() != null) {
+            dibujo.eliminarNodo(dibujo.getNodoSeleccionado());
+            dibujo.dibujar(pnlGrafica, Estado.NADA);
+            estado = Estado.SELECCIONANDO;
+        }
     }
 
     private void dibujar() {
-
+        estado = Estado.NADA;
     }
 
-    private boolean dibujando = false;
     private Dibujo dibujo = new Dibujo();
 
     private Trazo getTrazo(int x, int y) {
@@ -224,30 +239,40 @@ public class FrmEditor extends JFrame {
     }
 
     private void pnlGraficaMouseClicked(MouseEvent evt) {
-        if (dibujando) {
-            dibujando = false;
-            System.out.println("x1=" + x + ", y1=" + y + ", x2=" + evt.getX() + ", y2=" + evt.getY());
-            Trazo trazo = getTrazo(evt.getX(), evt.getY());
-            if (trazo != null) {
-                dibujo.agregarNodo(new Nodo(trazo, color));
-                dibujo.dibujar(pnlGrafica);
-            }
-        } else {
-            dibujando = true;
-            x = evt.getX();
-            y = evt.getY();
-            System.out.println("x=" + x + ", y=" + y);
+        switch (estado) {
+            case TRAZANDO:
+                estado = Estado.NADA;
+                System.out.println("x1=" + x + ", y1=" + y + ", x2=" + evt.getX() + ", y2=" + evt.getY());
+                Trazo trazo = getTrazo(evt.getX(), evt.getY());
+                if (trazo != null) {
+                    dibujo.agregarNodo(new Nodo(trazo, color));
+                    dibujo.dibujar(pnlGrafica, estado);
+                }
+                break;
+            case NADA:
+                estado = Estado.TRAZANDO;
+                x = evt.getX();
+                y = evt.getY();
+                System.out.println("x=" + x + ", y=" + y);
+                break;
+            case SELECCIONANDO:
+                if (dibujo.getNodoSeleccionado() != null) {
+                    estado = Estado.SELECCIONADO;
+                }
         }
     }
 
     private void pnlGraficaMouseMoved(MouseEvent evt) {
-        if (dibujando) {
+        if (estado == Estado.TRAZANDO) {
             Graphics g = pnlGrafica.getGraphics();
             Trazo trazo = getTrazo(evt.getX(), evt.getY());
             if (trazo != null) {
-                dibujo.dibujar(pnlGrafica);
-                trazo.dibujar(g, color);
+                dibujo.dibujar(pnlGrafica, Estado.NADA);
+                trazo.dibujar(g, color, Estado.NADA);
             }
+        } else if (estado == Estado.SELECCIONANDO) {
+            dibujo.seleccionar(evt.getX(), evt.getY());
+            dibujo.dibujar(pnlGrafica, estado);
         }
     }
 
